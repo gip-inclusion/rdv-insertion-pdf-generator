@@ -1,4 +1,5 @@
 import Bottleneck from "bottleneck";
+import tmp from "tmp";
 
 const limiter = new Bottleneck({
   maxConcurrent: 1,
@@ -20,20 +21,20 @@ export const makeGeneratePdfFromHtml =
       logWithRequestId(requestId, "generatePdfFromHtml started");
       const page = await browser.newPage();
       page.setDefaultNavigationTimeout(5_000);
+      const tmpFile = tmp.fileSync({ suffix: '.pdf' });
 
       try {
         await page.setContent(htmlContent, { waitUntil: "load" });
         await page.emulateMediaType("print");
 
-        const fileName = `document_${requestId}.pdf`;
         const base64Pdf = (
           await page.pdf({
-            path: fileName,
+            path: tmpFile.name,
             margin: {
-              top: "2.5cm",
-              right: "1.5cm",
-              bottom: "2.5cm",
-              left: "1.5cm",
+              top: "0cm",
+              right: "0cm",
+              bottom: "0cm",
+              left: "0cm",
             },
             printBackground: true,
             format: "A4",
@@ -49,6 +50,7 @@ export const makeGeneratePdfFromHtml =
       } finally {
         console.timeEnd(durationLabel);
         await page.close();
+        tmpFile.removeCallback();
       }
     });
   };
